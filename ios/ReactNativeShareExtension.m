@@ -100,10 +100,20 @@ RCT_REMAP_METHOD(data,
             }];
         } else if (imageProvider) {
             [imageProvider loadItemForTypeIdentifier:IMAGE_IDENTIFIER options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
-                NSURL *url = (NSURL *)item;
-
-                if(callback) {
-                    callback([url absoluteString], [[[url absoluteString] pathExtension] lowercaseString], nil);
+                 if ([(UIImage *)item isKindOfClass:[UIImage class]]) {
+                    UIImage *image = (UIImage *)item;
+                    if (callback) {
+                        callback([UIImagePNGRepresentation(image) base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength],
+                        @"image/base64", nil);
+                    }
+                } else {
+                    NSURL *url = (NSURL *)item;
+                    NSData* data = [NSData dataWithContentsOfURL:url];
+                    if(callback) {
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            callback([data base64EncodedStringWithOptions:0], @"image/base64", nil);
+                        });
+                    }
                 }
             }];
         } else if (textProvider) {
