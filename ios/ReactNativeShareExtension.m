@@ -100,20 +100,29 @@ RCT_REMAP_METHOD(data,
             }];
         } else if (imageProvider) {
             [imageProvider loadItemForTypeIdentifier:IMAGE_IDENTIFIER options:nil completionHandler:^(id<NSSecureCoding> item, NSError *error) {
+                
+                CGFloat maxCompressionFactor = 0.1f;
+                CGFloat compressionFactor = 0.9f;
+                int maxImageSize = 600 * 1024;
+                
+                UIImage* image;
                  if ([(UIImage *)item isKindOfClass:[UIImage class]]) {
-                    UIImage *image = (UIImage *)item;
-                    if (callback) {
-                        callback([UIImagePNGRepresentation(image) base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength],
-                        @"image/base64", nil);
-                    }
-                } else {
-                    NSURL *url = (NSURL *)item;
-                    NSData* data = [NSData dataWithContentsOfURL:url];
-                    if(callback) {
-                        dispatch_async(dispatch_get_main_queue(), ^{
-                            callback([data base64EncodedStringWithOptions:0], @"image/base64", nil);
-                        });
-                    }
+                    image = (UIImage *) item;
+                 } else {
+                    image = [UIImage imageWithData:[NSData dataWithContentsOfURL:(NSURL *)item]];
+                }
+               
+                
+                NSData *imageData = UIImageJPEGRepresentation(image, compressionFactor);
+                
+                while ([imageData length] > maxImageSize && compressionFactor > maxCompressionFactor) {
+                    compressionFactor -= 0.1;
+                    imageData = UIImageJPEGRepresentation(image, compressionFactor);
+                }
+                if(callback) {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        callback([imageData base64EncodedStringWithOptions:0], @"image/base64", nil);
+                    });
                 }
             }];
         } else if (textProvider) {
